@@ -15,11 +15,11 @@ class ViewController: ASViewController, ASCollectionViewDelegateFlowLayout, UIGe
     let layout: ASCollectionViewVerticalLayout
     let horizontalGap: CGFloat = 16
     let verticalGap: CGFloat = 16
-    
+    var currentHorizontalCount = 3
     
     init(viewModel vm: ViewModel) {
         viewModel = vm
-        layout = ASCollectionViewVerticalLayout(horizontalItemCount: 3, horizontalGap: horizontalGap, verticalGap: verticalGap)
+        layout = ASCollectionViewVerticalLayout(horizontalItemCount: currentHorizontalCount, horizontalGap: horizontalGap, verticalGap: verticalGap)
         collectionNode = ASCollectionNode(collectionViewLayout: layout)
         super.init(node: collectionNode)
     }
@@ -51,42 +51,59 @@ class ViewController: ASViewController, ASCollectionViewDelegateFlowLayout, UIGe
         collectionNode.view.leadingScreensForBatching = 2
     }
     
+    override func viewWillTransitionToSize(size: CGSize, withTransitionCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+        collectionNode.view.collectionViewLayout.invalidateLayout()
+    }
+    
     var targetCellIndexPath: NSIndexPath?
     var transitionLayout: UICollectionViewTransitionLayout?
+    var lastState: UIGestureRecognizerState = .Possible
     func handlePinch(pinch: UIPinchGestureRecognizer) {
         switch pinch.state {
         case .Began:
-            print("Begin Pinch")
+            guard lastState == .Possible else { return }
+            
+            let targetHorizontalCount = pinch.scale < 1 ? currentHorizontalCount + 1 : currentHorizontalCount - 1
+            guard targetHorizontalCount > 0 else { return }
+            
+            lastState = pinch.state
+            
             let pinchPoint = pinch.locationInView(collectionNode.view)
             targetCellIndexPath = collectionNode.view.indexPathForItemAtPoint(pinchPoint)
-            let currentLayoutHorizontalItemCount = (collectionNode.view.collectionViewLayout as! ASCollectionViewVerticalLayout).horizontalItemCount
-            let nextHorizontalCount = pinch.scale < 1 ? currentLayoutHorizontalItemCount + 1 : currentLayoutHorizontalItemCount - 1
-            let nextLayout = ASCollectionViewVerticalLayout(horizontalItemCount: nextHorizontalCount, horizontalGap: horizontalGap, verticalGap: verticalGap)
-            transitionLayout = collectionNode.view.startInteractiveTransitionToCollectionViewLayout(nextLayout) { completion in
-                print("startInteractiveTransitionToCollectionViewLayout Complete")
+            let nextLayout = ASCollectionViewVerticalLayout(horizontalItemCount: targetHorizontalCount, horizontalGap: horizontalGap, verticalGap: verticalGap)
+            transitionLayout = collectionNode.view.startInteractiveTransitionToCollectionViewLayout(nextLayout) { [weak self] completion in
+                if completion.1 {
+                    self?.currentHorizontalCount = targetHorizontalCount
+                }
+                self?.transitionLayout = .None
+                self?.lastState = .Possible
             }
         case .Changed:
+            guard lastState == .Began else { return }
             var scaleFactor: CGFloat = 0
             if pinch.scale < 1 {
                 scaleFactor = 1 - pinch.scale
             } else {
                 scaleFactor = (pinch.scale - 1) / 2
             }
-            transitionLayout?.transitionProgress = min(scaleFactor, 0.99)
-            transitionLayout?.invalidateLayout()
+            transitionLayout?.transitionProgress = min(scaleFactor, 1)
+            //Right now reloadData and layoutSubviews manually calls into the ASDataController to relayout the sizes of the collection view nodes. 🙈
+            // https://github.com/facebook/AsyncDisplayKit/issues/691
+            // https://github.com/facebook/AsyncDisplayKit/issues/866
             
         case .Ended:
-            print("End Pinch")
+            guard lastState == .Began else { return }
+            lastState = pinch.state
             if transitionLayout?.transitionProgress > 0.4 {
                 collectionNode.view.finishInteractiveTransition()
             } else {
                 collectionNode.view.cancelInteractiveTransition()
             }
-            transitionLayout = .None
         default: break
         }
     }
     
+    @available(*, unavailable)
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

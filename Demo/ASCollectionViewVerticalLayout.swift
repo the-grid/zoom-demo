@@ -33,6 +33,7 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     }
     
     override func prepareLayout() {
+        
         guard let collectionView = self.collectionView else { fatalError() }
         
         itemSize = getItemSize(viewBounds: collectionView.bounds)
@@ -46,19 +47,17 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     }
     
     
-    var cachedAtts = [NSIndexPath: UICollectionViewLayoutAttributes]()
+    var cachedAtts = [Int: UICollectionViewLayoutAttributes]()
     
     override func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
-        
-        // Ensure all items attributes are cached
-        
+                
         let itemCount = getItemCount()
         for index in 0 ..< itemCount {
-            let isCached = cachedAtts.contains { $0.0.item == index}
+            let isCached = cachedAtts.contains { $0.0 == index}
             if !isCached {
                 let indexPath = NSIndexPath(forItem: index, inSection: 0)
                 if let att = layoutAttributesForItemAtIndexPath(indexPath) {
-                    cachedAtts[att.indexPath] = att
+                    cachedAtts[index] = att
                 }
             }
         }
@@ -70,8 +69,8 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     }
     
     override func layoutAttributesForItemAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
-                
-        guard cachedAtts.indexForKey(indexPath) == nil else { return cachedAtts[indexPath] }
+        
+        guard cachedAtts.indexForKey(indexPath.item) == nil else { return cachedAtts[indexPath.item] }
         
         let att = UICollectionViewLayoutAttributes(forCellWithIndexPath: indexPath)
         let col = indexPath.item % horizontalItemCount
@@ -96,12 +95,38 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
         return att
     }
     
+    /*
+     override func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+     //
+     }
+     
+     override func layoutAttributesForDecorationViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+     //
+     }
+     */
+    
+    
     override func shouldInvalidateLayoutForBoundsChange(newBounds: CGRect) -> Bool {
-        return true
+        return false
     }
     
+    
+    override func invalidateLayout() {
+        //        let cv = self.collectionView as? ASCollectionView
+        //        print("invalidateLayout()")
+        cachedAtts.removeAll()
+        super.invalidateLayout()
+    }
+    
+    
+    /*
+     override func targetContentOffsetForProposedContentOffset(proposedContentOffset: CGPoint, withScrollingVelocity velocity: CGPoint) -> CGPoint {
+     return CGPointZero
+     }
+     */
+    
     override func collectionViewContentSize() -> CGSize {
-        guard let atts = layoutAttributesForItemAtIndexPath(NSIndexPath(forItem: getItemCount(), inSection: 0)) else { return CGSizeZero }
+        guard let atts = layoutAttributesForItemAtIndexPath(NSIndexPath(forItem: getItemCount() - 1, inSection: 0)) else { return CGSizeZero }
         guard let collectionView = self.collectionView else { return CGSizeZero }
         let w = collectionView.bounds.width
         let h = atts.frame.origin.y + atts.frame.height

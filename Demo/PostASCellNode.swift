@@ -21,7 +21,7 @@ class PostASCellNode: ASCellNode {
         backgroundColor = UIColor.purpleColor()
     }
     
-    // Don't know how to do this yet, but next on the list!
+    // Layout all the things
     override func layoutSpecThatFits(constrainedSize: ASSizeRange) -> ASLayoutSpec {
         // print("layoutSpecThatFits: \(constrainedSize)")
         let spec = ASStaticLayoutSpec()
@@ -48,7 +48,7 @@ class PostASCellNode: ASCellNode {
     override func fetchData() {
         super.fetchData()
         //        print("fetchData()")
-        // use ASNetworkImageNode to get image
+        // use ASNetworkImageNode to get an image perhaps
         
     }
     
