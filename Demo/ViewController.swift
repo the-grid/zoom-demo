@@ -17,7 +17,7 @@ extension _ArrayType where Generator.Element == ASCellNode {
     }
 }
 
-class ViewController: ASViewController, ASCollectionViewDelegateFlowLayout, UIGestureRecognizerDelegate {
+class ViewController: ASViewController, UIGestureRecognizerDelegate {
 
     let viewModel: ViewModel
     let collectionNode: ASCollectionNode
