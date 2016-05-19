@@ -13,6 +13,7 @@ class ViewModel: NSObject, ASCollectionDelegate, ASCollectionDataSource {
     var loadedItemCount = 30
     let totalItemCount = 200
     let maxAdditionalToLoad = 30
+    var itemSize = CGSizeZero
     
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
         return 1
@@ -35,7 +36,7 @@ class ViewModel: NSObject, ASCollectionDelegate, ASCollectionDataSource {
     
     func collectionView(collectionView: ASCollectionView, constrainedSizeForNodeAtIndexPath indexPath: NSIndexPath) -> ASSizeRange {
         guard let layout = collectionView.collectionViewLayout as? ASCollectionViewVerticalLayout else {
-            return ASSizeRange(min: CGSizeZero, max: CGSizeZero)
+            return ASSizeRange(min: itemSize, max: itemSize)
         }
         let size = layout.getItemSize(viewBounds: collectionView.bounds)
         return ASSizeRange(min: size, max: size)
