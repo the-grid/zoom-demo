@@ -108,7 +108,9 @@ class ViewController: ASViewController, UIGestureRecognizerDelegate {
             let progressHeight = ((transitionTargetSize.height - transitionPrevSize.height) * progress) + transitionPrevSize.height
             let progressiveSize = CGSize(width: progressWidth, height: progressHeight)
             
-            cellsToUpdateDuringTransition?.setNeedsLayout(progressiveSize)
+//            cellsToUpdateDuringTransition?.setNeedsLayout(progressiveSize)
+            viewModel.itemSize = progressiveSize
+            collectionNode.view.relayoutAllNodes()
             //Right now reloadData and layoutSubviews manually calls into the ASDataController to relayout the sizes of the collection view nodes. 🙈
             // https://github.com/facebook/AsyncDisplayKit/issues/691
             // https://github.com/facebook/AsyncDisplayKit/issues/866
