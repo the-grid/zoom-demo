@@ -17,6 +17,6 @@ class ASCollectionViewTransitionLayout: UICollectionViewTransitionLayout {
         guard transitionProgress > 0 || ready else { return }
         guard let collectionView = collectionView else { return }
         ready = true
-        (collectionView as? ASCollectionView)?.relayoutAllNodes()
+        (collectionView as? ASCollectionView)?.relayoutItems()
     }
 }
