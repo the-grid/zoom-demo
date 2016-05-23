@@ -79,4 +79,12 @@ class ViewModel: NSObject, ASCollectionDelegate, ASCollectionDataSource {
             })
         })
     }
+    
+    func getAllLoadedPaths() -> [NSIndexPath] {
+        var paths = [NSIndexPath]()
+        for i in 0 ..< loadedItemCount {
+            paths.append(NSIndexPath(forRow: i, inSection: 0))
+        }
+        return paths
+    }
 }

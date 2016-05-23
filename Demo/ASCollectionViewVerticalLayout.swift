@@ -6,8 +6,6 @@
 //  Copyright © 2016 The Grid. All rights reserved.
 //
 
-import Foundation
-
 class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     
     let horizontalItemCount: Int
@@ -19,6 +17,9 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     var horizontalGapCount: CGFloat = 0
     var horizontalInsetTotal: CGFloat = 0
     var hCenterOffset: CGFloat = 0
+    var targetCellIndexPath: NSIndexPath?
+    
+    private var cachedAtts = [Int: UICollectionViewLayoutAttributes]()
     
     required init(horizontalItemCount hic: Int, horizontalGap hg: CGFloat, verticalGap vg: CGFloat) {
         horizontalItemCount = hic
@@ -37,7 +38,6 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
         guard let collectionView = self.collectionView else { fatalError() }
         
         itemSize = getItemSize(viewBounds: collectionView.bounds)
-        
         cardsTotalWidth = itemSize.width * CGFloat(horizontalItemCount)
         horizontalGapCount = horizontalGap * CGFloat(horizontalItemCount - 1)
         horizontalInsetTotal = collectionView.contentInset.left + collectionView.contentInset.right
@@ -46,11 +46,10 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
         super.prepareLayout()
     }
     
-    
-    var cachedAtts = [Int: UICollectionViewLayoutAttributes]()
-    
     override func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
-                
+        
+        //        print("layoutAttributesForElementsInRect \(rect)")
+        
         let itemCount = getItemCount()
         for index in 0 ..< itemCount {
             let isCached = cachedAtts.contains { $0.0 == index}
@@ -72,6 +71,8 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
         
         guard cachedAtts.indexForKey(indexPath.item) == nil else { return cachedAtts[indexPath.item] }
         
+        //        print("new layoutAttributesForItemAtIndexPath \(indexPath.item)")
+        
         let att = UICollectionViewLayoutAttributes(forCellWithIndexPath: indexPath)
         let col = indexPath.item % horizontalItemCount
         let row = indexPath.item / horizontalItemCount
@@ -91,6 +92,7 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
         att.indexPath = indexPath
         att.size = itemSize
         att.bounds = CGRect(origin: CGPointZero, size: itemSize)
+        att.center = rect.center()
         
         return att
     }
@@ -112,18 +114,35 @@ class ASCollectionViewVerticalLayout: UICollectionViewLayout {
     
     
     override func invalidateLayout() {
-        //        let cv = self.collectionView as? ASCollectionView
-        //        print("invalidateLayout()")
+        //        print("ASCollectionViewVerticalLayout invalidateLayout()")
         cachedAtts.removeAll()
         super.invalidateLayout()
     }
     
-    
-    /*
-     override func targetContentOffsetForProposedContentOffset(proposedContentOffset: CGPoint, withScrollingVelocity velocity: CGPoint) -> CGPoint {
-     return CGPointZero
-     }
-     */
+    override func targetContentOffsetForProposedContentOffset(proposedContentOffset: CGPoint) -> CGPoint {
+        guard let collectionView = self.collectionView else { return proposedContentOffset }
+        guard let indexPath = targetCellIndexPath else { return proposedContentOffset }
+        guard let cellAttribute = layoutAttributesForItemAtIndexPath(indexPath) else { return proposedContentOffset }
+        
+        // must use default scroll destination if content doesnt need to scroll
+        let totalContentSize = collectionViewContentSize()
+        let visibleFrameSize = collectionView.bounds
+        
+        guard totalContentSize.height >= visibleFrameSize.height else { return proposedContentOffset }
+        
+        var optimal = cellAttribute.center.y - (visibleFrameSize.height / 2)
+        
+        if optimal < 0 {
+            optimal = 0
+        }
+        if optimal > totalContentSize.height - visibleFrameSize.height - collectionView.contentInset.top {
+            optimal = totalContentSize.height - visibleFrameSize.height - collectionView.contentInset.top
+        }
+        
+        let pt = CGPoint(x: proposedContentOffset.x, y: optimal)
+        targetCellIndexPath = nil
+        return pt
+    }
     
     override func collectionViewContentSize() -> CGSize {
         guard let atts = layoutAttributesForItemAtIndexPath(NSIndexPath(forItem: getItemCount() - 1, inSection: 0)) else { return CGSizeZero }

@@ -9,11 +9,16 @@
 import UIKit
 
 extension _ArrayType where Generator.Element == ASCellNode {
-    func setNeedsLayout(size: CGSize) {
+    func setNeedsLayout() {
         for node in self {
-            node.frame = CGRect(origin: node.frame.origin, size: size)
             node.setNeedsLayout()
         }
+    }
+}
+
+extension CGRect {
+    func center() -> CGPoint {
+        return CGPoint(x: self.origin.x + self.width / 2, y: self.origin.y + self.height / 2)
     }
 }
 
@@ -64,10 +69,11 @@ class ViewController: ASViewController, UIGestureRecognizerDelegate {
         collectionNode.view.collectionViewLayout.invalidateLayout()
     }
     
-    var targetCellIndexPath: NSIndexPath?
     var transitionLayout: UICollectionViewTransitionLayout?
     var lastState: UIGestureRecognizerState = .Possible
     var cellsToUpdateDuringTransition: [ASCellNode]?
+    var transitionPrevSize = CGSizeZero
+    var transitionNextSize = CGSizeZero
     
     func handlePinch(pinch: UIPinchGestureRecognizer) {
         switch pinch.state {
@@ -78,18 +84,34 @@ class ViewController: ASViewController, UIGestureRecognizerDelegate {
             guard targetHorizontalCount > 0 else { return }
             
             lastState = pinch.state
-            cellsToUpdateDuringTransition = collectionNode.view.visibleNodes()
+            
+            let loadedPaths = viewModel.getAllLoadedPaths()
+            cellsToUpdateDuringTransition = loadedPaths.map { return collectionNode.view.nodeForItemAtIndexPath($0) }
             
             let pinchPoint = pinch.locationInView(collectionNode.view)
-            targetCellIndexPath = collectionNode.view.indexPathForItemAtPoint(pinchPoint)
+            
             let nextLayout = ASCollectionViewVerticalLayout(horizontalItemCount: targetHorizontalCount, horizontalGap: horizontalGap, verticalGap: verticalGap)
+            
+            nextLayout.targetCellIndexPath = collectionNode.view.indexPathForItemAtPoint(pinchPoint)
+            
+            transitionPrevSize = (collectionNode.view.collectionViewLayout as? ASCollectionViewVerticalLayout)?.getItemSize(viewBounds: collectionNode.bounds) ?? CGSizeZero
+            
+            transitionNextSize = nextLayout.getItemSize(viewBounds: collectionNode.bounds)
+            
             transitionLayout = collectionNode.view.startInteractiveTransitionToCollectionViewLayout(nextLayout) { [weak self] completion in
                 if completion.1 {
                     self?.currentHorizontalCount = targetHorizontalCount
                 }
                 self?.transitionLayout = .None
                 self?.lastState = .Possible
+                
+                /* trying to trigger data fetch
+                 guard let floor = self?.view.bounds.height else { return }
+                 self?.collectionNode.view.setContentOffset(CGPoint(x: 0, y: floor), animated: true)
+                 */
             }
+            
+        //Right now reloadData and layoutSubviews manually calls into the ASDataController to relayout the sizes of the collection view nodes.
         case .Changed:
             guard lastState == .Began else { return }
             var scaleFactor: CGFloat = 0
@@ -98,31 +120,28 @@ class ViewController: ASViewController, UIGestureRecognizerDelegate {
             } else {
                 scaleFactor = (pinch.scale - 1) / 2
             }
-            let progress = min(scaleFactor, 1)
-            transitionLayout?.transitionProgress = progress
             
-            let ip = NSIndexPath(index: 0)
-            guard let transitionPrevSize = transitionLayout?.currentLayout.layoutAttributesForItemAtIndexPath(ip)?.size else { return }
-            guard let transitionTargetSize = transitionLayout?.nextLayout.layoutAttributesForItemAtIndexPath(ip)?.size else { return }
-            let progressWidth = ((transitionTargetSize.width - transitionPrevSize.width) * progress) + transitionPrevSize.width
-            let progressHeight = ((transitionTargetSize.height - transitionPrevSize.height) * progress) + transitionPrevSize.height
+            let progress = min(scaleFactor, 1)
+            
+            let progressWidth = ((transitionNextSize.width - transitionPrevSize.width) * progress) + transitionPrevSize.width
+            let progressHeight = ((transitionNextSize.height - transitionPrevSize.height) * progress) + transitionPrevSize.height
             let progressiveSize = CGSize(width: progressWidth, height: progressHeight)
             
-//            cellsToUpdateDuringTransition?.setNeedsLayout(progressiveSize)
+            transitionLayout?.transitionProgress = progress
             viewModel.itemSize = progressiveSize
-            collectionNode.view.relayoutAllNodes()
-            //Right now reloadData and layoutSubviews manually calls into the ASDataController to relayout the sizes of the collection view nodes. 🙈
-            // https://github.com/facebook/AsyncDisplayKit/issues/691
-            // https://github.com/facebook/AsyncDisplayKit/issues/866
-            
+            cellsToUpdateDuringTransition?.setNeedsLayout()
         case .Ended:
             guard lastState == .Began else { return }
+            guard let progress = transitionLayout?.transitionProgress else { return }
             lastState = pinch.state
-            if transitionLayout?.transitionProgress > 0.4 {
-                collectionNode.view.finishInteractiveTransition()
-            } else {
-                collectionNode.view.cancelInteractiveTransition()
-            }
+            let cancelInteractiveTransition = progress < 0.4
+            
+            viewModel.itemSize = cancelInteractiveTransition ? transitionPrevSize : transitionNextSize
+            
+            cancelInteractiveTransition ? collectionNode.view.cancelInteractiveTransition() : collectionNode.view.finishInteractiveTransition()
+            
+            cellsToUpdateDuringTransition?.setNeedsLayout()
+            
         default: break
         }
     }
