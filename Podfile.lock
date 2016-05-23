@@ -1,10 +1,10 @@
 PODS:
-  - AsyncDisplayKit (1.9.73):
-    - AsyncDisplayKit/PINRemoteImage (= 1.9.73)
-  - AsyncDisplayKit/ASDealloc2MainObject (1.9.73)
-  - AsyncDisplayKit/Core (1.9.73):
+  - AsyncDisplayKit (1.9.74):
+    - AsyncDisplayKit/PINRemoteImage (= 1.9.74)
+  - AsyncDisplayKit/ASDealloc2MainObject (1.9.74)
+  - AsyncDisplayKit/Core (1.9.74):
     - AsyncDisplayKit/ASDealloc2MainObject
-  - AsyncDisplayKit/PINRemoteImage (1.9.73):
+  - AsyncDisplayKit/PINRemoteImage (1.9.74):
     - AsyncDisplayKit/Core
     - PINRemoteImage/iOS (>= 3.0.0-beta.2)
   - PINCache (2.2.2)
@@ -14,13 +14,23 @@ PODS:
     - PINRemoteImage/Core
 
 DEPENDENCIES:
-  - AsyncDisplayKit
+  - AsyncDisplayKit (from `git@github.com:the-grid/AsyncDisplayKit.git`, branch `setNeedsLayout-relayoutAllNodes`)
+
+EXTERNAL SOURCES:
+  AsyncDisplayKit:
+    :branch: setNeedsLayout-relayoutAllNodes
+    :git: git@github.com:the-grid/AsyncDisplayKit.git
+
+CHECKOUT OPTIONS:
+  AsyncDisplayKit:
+    :commit: 182dfe46f43fe8ccb9473a86e93454916d52568c
+    :git: git@github.com:the-grid/AsyncDisplayKit.git
 
 SPEC CHECKSUMS:
-  AsyncDisplayKit: cc906c5ddff9d34c8f5ea2f18ba092033c5516a3
+  AsyncDisplayKit: cbd10f28030c0b904cef1bd8e7d96d775c5b0484
   PINCache: 078426d356ab95ef875e9e62e5c35a2ea3333c28
   PINRemoteImage: 197554c5ba57a6ae90f5db441651180039fc9062
 
-PODFILE CHECKSUM: ef584f483fea285b6aa2294c0778dad54ed00b7e
+PODFILE CHECKSUM: 07f75ccee8b3505fbf782d0adce212fc402700c7
 
 COCOAPODS: 1.0.0
