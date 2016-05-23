@@ -34,6 +34,10 @@ class ViewModel: NSObject, ASCollectionDelegate, ASCollectionDataSource {
         // print("collectionViewUnlockDataSource")
     }
     
+    func collectionView(collectionView: UICollectionView, transitionLayoutForOldLayout fromLayout: UICollectionViewLayout, newLayout toLayout: UICollectionViewLayout) -> UICollectionViewTransitionLayout {
+        return ASCollectionViewTransitionLayout(currentLayout: fromLayout, nextLayout: toLayout)
+    }
+    
     func collectionView(collectionView: ASCollectionView, constrainedSizeForNodeAtIndexPath indexPath: NSIndexPath) -> ASSizeRange {
         guard let layout = collectionView.collectionViewLayout as? ASCollectionViewVerticalLayout else {
             return ASSizeRange(min: itemSize, max: itemSize)
@@ -78,5 +82,13 @@ class ViewModel: NSObject, ASCollectionDelegate, ASCollectionDataSource {
                     context.completeBatchFetching(true)
             })
         })
+    }
+    
+    func getAllLoadedPaths() -> [NSIndexPath] {
+        var paths = [NSIndexPath]()
+        for i in 0 ..< loadedItemCount {
+            paths.append(NSIndexPath(forRow: i, inSection: 0))
+        }
+        return paths
     }
 }
